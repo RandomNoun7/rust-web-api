@@ -18,7 +18,7 @@ pub async fn get_rustaceans(
     RustaceanRepository::find_multiple(&mut db, 100)
         .await
         .map(|rustaceans| json!(rustaceans))
-        .map_err(|e| Custom(Status::InternalServerError, json!(print!("{:?}", e))))
+        .map_err(|_| Custom(Status::InternalServerError, json!("Error")))
 }
 
 #[rocket::get("/rustaceans/<id>")]
@@ -40,7 +40,7 @@ pub async fn create_rustacean(
     RustaceanRepository::create(&mut db, new_rustacean.into_inner())
         .await
         .map(|rustacean| Custom(Status::Created, json!(rustacean)))
-        .map_err(|e| Custom(Status::InternalServerError, json!(print!("{:?}", e))))
+        .map_err(|_| Custom(Status::InternalServerError, json!("Error")))
 }
 
 #[rocket::put("/rustaceans/<id>", format = "json", data = "<new_rustacean>")]

@@ -1,5 +1,5 @@
 use crate::models::{Crate, NewCrate};
-use crate::DbConn;
+use crate::rocket_routes::DbConn;
 use crate::{models, repositories::CrateRepository};
 use rocket::{
     http::Status,

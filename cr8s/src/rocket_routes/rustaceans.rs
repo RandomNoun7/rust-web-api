@@ -1,5 +1,5 @@
 use crate::models::{NewRustacean, Rustacean};
-use crate::DbConn;
+use crate::rocket_routes::DbConn;
 use crate::{models, repositories::RustaceanRepository};
 use diesel::prelude::*;
 use rocket::response::status::NoContent;

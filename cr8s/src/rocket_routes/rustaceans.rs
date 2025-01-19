@@ -1,12 +1,11 @@
-use crate::models::{NewRustacean, Rustacean};
+use crate::models::NewRustacean;
+use crate::repositories::RustaceanRepository;
 use crate::rocket_routes::DbConn;
-use crate::{models, repositories::RustaceanRepository};
-use diesel::prelude::*;
 use rocket::response::status::NoContent;
 use rocket::serde::json::Json;
 use rocket::{
     http::Status,
-    response::status::{self, Custom},
+    response::status::Custom,
     serde::json::{self, json},
 };
 use rocket_db_pools::Connection;
@@ -18,7 +17,7 @@ pub async fn get_rustaceans(
     RustaceanRepository::find_multiple(&mut db, 100)
         .await
         .map(|rustaceans| json!(rustaceans))
-        .map_err(|_| Custom(Status::InternalServerError, json!("Error")))
+        .map_err(|e| Custom(Status::InternalServerError, json!(e.to_string())))
 }
 
 #[rocket::get("/rustaceans/<id>")]
@@ -29,7 +28,7 @@ pub async fn view_rustacean(
     RustaceanRepository::find(&mut db, id)
         .await
         .map(|rustacean| json!(rustacean))
-        .map_err(|_| Custom(Status::InternalServerError, json!("Error")))
+        .map_err(|e| Custom(Status::InternalServerError, json!(e.to_string())))
 }
 
 #[rocket::post("/rustaceans", format = "json", data = "<new_rustacean>")]

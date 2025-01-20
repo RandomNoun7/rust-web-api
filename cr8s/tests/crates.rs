@@ -1,3 +1,4 @@
+use common::create_test_rustacean;
 use reqwest::{blocking::Client, StatusCode};
 use rocket::serde::json::{json, Value};
 pub mod common;
@@ -82,6 +83,7 @@ fn test_updated_crate() {
             "name": "new crate updated",
             "version": "1.0",
             "description": "new crate",
+            "created_at": krate["created_at"]
         }))
         .send()
         .unwrap()
@@ -89,8 +91,28 @@ fn test_updated_crate() {
         .unwrap();
     assert_eq!(updated_krate["name"], "new crate updated");
 
+    let rustacean2 = create_test_rustacean(&client);
+
+    let updated_krate_response = client
+        .put(format!("{}/crates/{}", common::APP_HOST, krate["id"]))
+        .json(&json!({
+            "rustacean_id": rustacean2["id"],
+            "code":"Hello World!",
+            "name": "new crate updated",
+            "version": "1.0",
+            "description": "new crate",
+            "created_at": krate["created_at"]
+        }))
+        .send()
+        .unwrap();
+    assert_eq!(updated_krate_response.status(), StatusCode::OK);
+
+    let updated_krate2: Value = updated_krate_response.json().unwrap();
+    assert_eq!(updated_krate2["rustacean_id"], rustacean2["id"]);
+
     common::delete_test_crate(&client, krate);
     common::delete_test_rustacean(&client, rustacean);
+    common::delete_test_rustacean(&client, rustacean2);
 }
 
 #[test]

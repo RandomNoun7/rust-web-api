@@ -40,7 +40,7 @@ pub struct NewCrate {
     pub description: Option<String>,
 }
 
-#[derive(Queryable, Serialize, Deserialize)]
+#[derive(Queryable, Serialize, Deserialize, Debug)]
 pub struct User {
     pub id: i32,
     pub username: String,

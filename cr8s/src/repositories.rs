@@ -1,6 +1,8 @@
 use diesel::dsl::now;
 use diesel::dsl::IntervalDsl;
 use diesel::prelude::*;
+use diesel::query_dsl::QueryDsl;
+use diesel::sql_types::BigInt;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::models::*;
@@ -96,5 +98,41 @@ impl CrateRepository {
 
     pub async fn delete(c: &mut AsyncPgConnection, id: i32) -> QueryResult<usize> {
         diesel::delete(crates::table.find(id)).execute(c).await
+    }
+}
+
+pub struct UserRepository;
+
+impl UserRepository {
+    pub async fn create(c: &mut AsyncPgConnection, new_user: NewUser) -> QueryResult<User> {
+        diesel::insert_into(users::table)
+            .values(new_user)
+            .get_result(c)
+            .await
+    }
+
+    pub async fn find_multiple(c: &mut AsyncPgConnection, limit: i64) -> QueryResult<Vec<User>> {
+        users::table.limit(limit).load(c).await
+    }
+
+    pub async fn delete(c: &mut AsyncPgConnection, id: i32) {
+        println!("Made it here");
+        let count_before = users::table.count().get_result::<i64>(c).await;
+        let _ = diesel::delete(users::table.find(id)).execute(c).await;
+        let count_after = users::table.count().get_result::<i64>(c).await;
+        println!(
+            "Count before: {:?}\nCountAfter: {:?}",
+            count_before, count_after
+        );
+    }
+}
+pub struct RoleRepository;
+
+impl RoleRepository {
+    pub async fn create(c: &mut AsyncPgConnection, new_role: NewRole) -> QueryResult<Role> {
+        diesel::insert_into(roles::table)
+            .values(new_role)
+            .get_result(c)
+            .await
     }
 }

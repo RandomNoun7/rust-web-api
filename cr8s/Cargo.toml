@@ -5,6 +5,7 @@ edition = "2021"
 default-run = "server"
 
 [dependencies]
+tokio = "1"
 chrono = { version = "0.4", features = ["serde"] }
 diesel = { version = "2.1", features = ["chrono"] }
 diesel-async = { version = "0.4", features = ["postgres"] }

@@ -1,3 +1,5 @@
+use crates::table;
+use diesel::delete;
 use diesel::dsl::now;
 use diesel::dsl::IntervalDsl;
 use diesel::prelude::*;
@@ -104,11 +106,55 @@ impl CrateRepository {
 pub struct UserRepository;
 
 impl UserRepository {
-    pub async fn create(c: &mut AsyncPgConnection, new_user: NewUser) -> QueryResult<User> {
-        diesel::insert_into(users::table)
+    pub async fn find_with_roles(
+        c: &mut AsyncPgConnection,
+    ) -> QueryResult<Vec<(User, Vec<(UserRole, Role)>)>> {
+        let users = users::table.load::<User>(c).await?;
+        let result = users_roles::table
+            .inner_join(roles::table)
+            .load::<(UserRole, Role)>(c)
+            .await?
+            .grouped_by(&users);
+
+        Ok(users.into_iter().zip(result).collect())
+    }
+    pub async fn create(
+        c: &mut AsyncPgConnection,
+        new_user: NewUser,
+        role_codes: Vec<String>,
+    ) -> QueryResult<User> {
+        let user: User = diesel::insert_into(users::table)
             .values(new_user)
             .get_result(c)
-            .await
+            .await?;
+
+        for role_code in role_codes {
+            let new_user_role = {
+                if let Ok(role) = RoleRepository::find_by_role_code(c, role_code.to_owned()).await {
+                    NewUserRole {
+                        user_id: user.id,
+                        role_id: role.id,
+                    }
+                } else {
+                    let new_role = NewRole {
+                        code: role_code.to_owned(),
+                        name: role_code.to_owned(),
+                    };
+                    let role = RoleRepository::create(c, new_role).await?;
+                    NewUserRole {
+                        user_id: user.id,
+                        role_id: role.id,
+                    }
+                }
+            };
+
+            diesel::insert_into(users_roles::table)
+                .values(new_user_role)
+                .get_result::<UserRole>(c)
+                .await?;
+        }
+
+        Ok(user)
     }
 
     pub async fn find_multiple(c: &mut AsyncPgConnection, limit: i64) -> QueryResult<Vec<User>> {
@@ -116,19 +162,42 @@ impl UserRepository {
     }
 
     pub async fn delete(c: &mut AsyncPgConnection, id: i32) {
-        println!("Made it here");
-        let count_before = users::table.count().get_result::<i64>(c).await;
-        let _ = diesel::delete(users::table.find(id)).execute(c).await;
-        let count_after = users::table.count().get_result::<i64>(c).await;
-        println!(
-            "Count before: {:?}\nCountAfter: {:?}",
-            count_before, count_after
-        );
+        diesel::delete(users_roles::table.filter(users_roles::user_id.eq(id)))
+            .execute(c)
+            .await
+            .unwrap();
+        diesel::delete(users::table.find(id))
+            .execute(c)
+            .await
+            .unwrap();
     }
 }
 pub struct RoleRepository;
 
 impl RoleRepository {
+    pub async fn find_by_ids(
+        c: &mut AsyncPgConnection,
+        role_ids: Vec<i32>,
+    ) -> QueryResult<Vec<Role>> {
+        roles::table
+            .filter(roles::id.eq_any(role_ids))
+            .get_results(c)
+            .await
+    }
+    pub async fn find_by_user(c: &mut AsyncPgConnection, user: &User) -> QueryResult<Vec<Role>> {
+        let user_roles = UserRole::belonging_to(&user)
+            .get_results::<UserRole>(c)
+            .await?;
+
+        let role_ids: Vec<i32> = user_roles.iter().map(|ur| ur.role_id).collect();
+
+        Self::find_by_ids(c, role_ids).await
+    }
+
+    pub async fn find_by_role_code(c: &mut AsyncPgConnection, code: String) -> QueryResult<Role> {
+        roles::table.filter(roles::code.eq(code)).first(c).await
+    }
+
     pub async fn create(c: &mut AsyncPgConnection, new_role: NewRole) -> QueryResult<Role> {
         diesel::insert_into(roles::table)
             .values(new_role)

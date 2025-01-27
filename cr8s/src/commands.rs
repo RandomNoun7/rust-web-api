@@ -1,6 +1,9 @@
 use diesel_async::{AsyncConnection, AsyncPgConnection};
 
-use crate::{models::NewUser, repositories::UserRepository};
+use crate::{
+    models::NewUser,
+    repositories::{RoleRepository, UserRepository},
+};
 
 async fn load_db_connection() -> AsyncPgConnection {
     let database_url =
@@ -16,15 +19,22 @@ pub async fn create_user(username: String, password: String, role_codes: Vec<Str
 
     let new_user = NewUser { username, password };
 
-    let user = UserRepository::create(&mut c, new_user).await.unwrap();
-    println!("User created {:?}", user)
+    let user = UserRepository::create(&mut c, new_user, role_codes)
+        .await
+        .unwrap();
+    let roles = RoleRepository::find_by_user(&mut c, &user).await.unwrap();
+    println!("User created {:?}", user);
+    println!("Roles assigned {:?}", roles);
 }
 
 pub async fn list_users() {
     let mut c = load_db_connection().await;
 
-    let users = UserRepository::find_multiple(&mut c, 100).await.unwrap();
-    println!("Users\n{:?}", users);
+    UserRepository::find_with_roles(&mut c)
+        .await
+        .unwrap()
+        .into_iter()
+        .for_each(|u| println!("{:?}", u));
 }
 
 pub async fn delete_user(id: i32) {

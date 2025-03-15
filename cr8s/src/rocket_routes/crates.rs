@@ -1,9 +1,9 @@
-use crate::models::{Crate, NewCrate};
+use crate::models::NewCrate;
 use crate::rocket_routes::{server_error, DbConn};
-use crate::{models, repositories::CrateRepository};
+use crate::repositories::CrateRepository;
 use rocket::{
     http::Status,
-    response::status::{self, Custom, NoContent},
+    response::status::{Custom, NoContent},
     serde::json::{self, json, Json},
 };
 

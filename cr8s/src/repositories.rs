@@ -1,10 +1,7 @@
-use crates::table;
-use diesel::delete;
 use diesel::dsl::now;
 use diesel::dsl::IntervalDsl;
 use diesel::prelude::*;
 use diesel::query_dsl::QueryDsl;
-use diesel::sql_types::BigInt;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::models::*;
@@ -64,6 +61,7 @@ impl CrateRepository {
         crates::table.limit(limit).load(c).await
     }
 
+    #[allow(dead_code)]
     pub async fn find_since(
         c: &mut AsyncPgConnection,
         hours_since: i32,
@@ -157,6 +155,7 @@ impl UserRepository {
         Ok(user)
     }
 
+    #[allow(dead_code)]
     pub async fn find_multiple(c: &mut AsyncPgConnection, limit: i64) -> QueryResult<Vec<User>> {
         users::table.limit(limit).load(c).await
     }
